@@ -25,7 +25,7 @@ La primera etapa se abre el lunes 16 de noviembre de 2026 por pedido expreso. De
 | 13 | Dom 13 dic | Experiencia integrada MVP-1 (#64) |
 | 14 | Vie 18 dic | Integración MVP-1 en `main` y ajuste final del mapa (#65) |
 
-Las PRs intermedias se apilan sobre la etapa anterior para que cada diff muestre el cambio incremental. La etapa 14 apunta a `main` e integra el estado MVP-1 completo. Ningún merge se ejecuta automáticamente.
+Las PRs intermedias se apilan sobre la rama de la etapa anterior para que cada diff muestre el cambio incremental. La etapa 14 apunta a `main` e integra el estado MVP-1 completo. Ningún merge se ejecuta automáticamente.
 
 ## Automatización
 
