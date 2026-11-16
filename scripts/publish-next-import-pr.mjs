@@ -65,24 +65,35 @@ const base = stage.base ?? previous.head.ref;
 execFileSync('git', ['fetch', 'origin', previous.head.ref], { stdio: 'inherit' });
 execFileSync('git', ['fetch', '--no-tags', source, 'main', 'MVP-1'], { stdio: 'inherit' });
 execFileSync('git', ['cat-file', '-e', `${stage.sha}^{commit}`], { stdio: 'inherit' });
-execFileSync('git', ['config', 'user.name', 'github-actions[bot]']);
-execFileSync('git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']);
-execFileSync('git', ['checkout', '-b', stage.branch, `refs/remotes/origin/${previous.head.ref}`], { stdio: 'inherit' });
-const merge = spawnSync('git', ['merge', '--no-ff', '--no-edit', stage.sha], { stdio: 'inherit' });
-if (merge.status !== 0) {
-  const unmerged = execFileSync('git', ['diff', '--name-only', '--diff-filter=U'], { encoding: 'utf8' })
-    .trim()
-    .split(/\r?\n/)
-    .filter(Boolean);
-  if (unmerged.length !== 1 || unmerged[0] !== 'README.md') {
-    throw new Error(`Conflicto inesperado al integrar la etapa ${stage.n}: ${unmerged.join(', ')}`);
+const existingRemoteBranch = execFileSync(
+  'git',
+  ['ls-remote', '--heads', 'origin', `refs/heads/${stage.branch}`],
+  { encoding: 'utf8' },
+).trim();
+if (existingRemoteBranch) {
+  execFileSync('git', ['fetch', 'origin', stage.branch], { stdio: 'inherit' });
+  const existingRef = `refs/remotes/origin/${stage.branch}`;
+  execFileSync('git', ['merge-base', '--is-ancestor', stage.sha, existingRef]);
+  execFileSync('git', ['merge-base', '--is-ancestor', `refs/remotes/origin/${previous.head.ref}`, existingRef]);
+} else {
+  execFileSync('git', ['config', 'user.name', 'github-actions[bot]']);
+  execFileSync('git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']);
+  execFileSync('git', ['checkout', '-b', stage.branch, `refs/remotes/origin/${previous.head.ref}`], { stdio: 'inherit' });
+  const merge = spawnSync('git', ['merge', '--no-ff', '--no-edit', stage.sha], { stdio: 'inherit' });
+  if (merge.status !== 0) {
+    const unmerged = execFileSync('git', ['diff', '--name-only', '--diff-filter=U'], { encoding: 'utf8' })
+      .trim()
+      .split(/\r?\n/)
+      .filter(Boolean);
+    if (unmerged.length !== 1 || unmerged[0] !== 'README.md') {
+      throw new Error(`Conflicto inesperado al integrar la etapa ${stage.n}: ${unmerged.join(', ')}`);
+    }
+    execFileSync('git', ['checkout', '--ours', '--', 'README.md']);
+    execFileSync('git', ['add', 'README.md']);
+    execFileSync('git', ['commit', '--no-edit'], { stdio: 'inherit' });
   }
-  execFileSync('git', ['checkout', '--ours', '--', 'README.md']);
-  execFileSync('git', ['add', 'README.md']);
-  execFileSync('git', ['commit', '--no-edit'], { stdio: 'inherit' });
+  execFileSync('git', ['push', 'origin', `HEAD:refs/heads/${stage.branch}`], { stdio: 'inherit' });
 }
-execFileSync('git', ['push', 'origin', `HEAD:refs/heads/${stage.branch}`], { stdio: 'inherit' });
-
 const sourceLink = `${sourcePage}/pull/${stage.sourcePr}`;
 const title = `[Importación ${String(stage.n).padStart(2, '0')}/14] ${stage.title}`;
 const body = [
