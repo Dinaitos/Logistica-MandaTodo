@@ -1,0 +1,23 @@
+name: Publicar siguiente PR del historial
+
+on:
+  schedule:
+    # 17:17 en Buenos Aires (20:17 UTC), viernes, sábado y domingo.
+    - cron: "17 20 * * 5,6,0"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  publish-next:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Abrir la siguiente PR histórica
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/publish-next-import-pr.mjs
