@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import DriverApp from './DriverApp.jsx'
 
 const DEMO_ACCOUNTS = {
   'admin@mandatodo.com': 'Administrador',
@@ -42,12 +43,8 @@ function Login({ onLogin }) {
       setError('Usuario o contraseña incorrectos. Revisá los datos e intentá nuevamente.')
       return
     }
-    if (!['Operador', 'Administrador'].includes(role)) {
-      setError('Esta cuenta no tiene acceso a las pantallas de operador.')
-    return
-}
     setError('')
-    onLogin()
+    onLogin(role)
   }
 
   return <main className="login-shell">
@@ -91,7 +88,7 @@ function Brand() {
   return <div className="brand"><span className="brand-badge"><Icon name="truck" size={20}/></span><span><b>MandáTodo</b><small>Sistema Logístico</small></span></div>
 }
 
-function Sidebar({ page, setPage, onLogout }) {
+function Sidebar({ page, setPage, role, onLogout }) {
   return <aside className="sidebar">
     <Brand/>
     <nav className="navigation" aria-label="Navegación principal">
@@ -99,7 +96,7 @@ function Sidebar({ page, setPage, onLogout }) {
         <Icon name={item.icon}/><span>{item.label}</span>{item.soon && <small>PRÓX.</small>}
       </button>)}
     </nav>
-    <div className="profile"><span className="avatar">O</span><span><b>Operaciones</b><small>Operador</small></span><button className="logout" onClick={onLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="logout" size={14}/></button></div>
+    <div className="profile"><span className="avatar">{role === 'Administrador' ? 'A' : 'O'}</span><span><b>{role === 'Administrador' ? 'Administración' : 'Operaciones'}</b><small>{role}</small></span><button className="logout" onClick={onLogout} title="Cerrar sesión" aria-label="Cerrar sesión"><Icon name="logout" size={14}/></button></div>
   </aside>
 }
 
@@ -178,14 +175,16 @@ function OrderForm({ setPage }) {
   </main>
 }
 
-function OperatorApp({ onLogout }) {
+function OperatorApp({ role, onLogout }) {
   const [page, setPage] = useState('board')
-  return <div className="operator-app"><Sidebar page={page} setPage={setPage} onLogout={onLogout}/><div className="workspace">{page === 'form' ? <OrderForm setPage={setPage}/> : <Board setPage={setPage}/>}</div></div>
+  return <div className="operator-app"><Sidebar page={page} setPage={setPage} role={role} onLogout={onLogout}/><div className="workspace">{page === 'form' ? <OrderForm setPage={setPage}/> : <Board setPage={setPage}/>}</div></div>
 }
 
 function App() {
-  const [isOperator, setIsOperator] = useState(false)
-  return isOperator ? <OperatorApp onLogout={() => setIsOperator(false)}/> : <Login onLogin={() => setIsOperator(true)}/> 
+  const [role, setRole] = useState(null)
+  if (!role) return <Login onLogin={setRole}/>
+  if (role === 'Chofer') return <DriverApp onLogout={() => setRole(null)}/>
+  return <OperatorApp role={role} onLogout={() => setRole(null)}/>
 }
 
 export default App
