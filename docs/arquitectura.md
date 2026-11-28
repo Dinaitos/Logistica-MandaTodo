@@ -60,3 +60,26 @@ No se cambió Docker ni SQL. Evaluar npm ci en Docker y readiness al preparar T0
 ## Material descartado
 
 La revisión previa encontró material de aprendizaje ajeno a este proyecto: un ABM de ejemplo con CRUD `/Clientes` sobre una tabla `Cliente`, CORS abierto, consultas parametrizadas pero sin validación de permisos ni de entradas, y logging del cuerpo de la petición; además una guía de Angular con SQL Server, incompatibles con el stack vigente. Nada de eso forma parte del repositorio y no se copió. Este proyecto se construye con el código que hay en `backend/`, `frontend/` y `database/`: no hace falta ningún módulo heredado para arrancarlo.
+
+## Actualización MVP1 · 13/10/2026
+
+Se implementó el núcleo del MVP1 sobre la rama `MVP-1`. Este apartado describe el estado real verificado en la sesión; el bloque del 30/09/2026 queda como fotografía histórica.
+
+| Ruta | Qué hace hoy |
+| --- | --- |
+| backend/app.js | Fábrica `createApp(deps)` sin base: monta `/`, `/api/health`, `/api/auth`, `/api/usuarios`, `/api/estados`, `/api/pedidos`, `/api/clientes`, notFound y errorHandler |
+| backend/index.js | Carga env, crea el pool `mysql2/promise`, escucha HTTP y avisa por consola si MySQL no responde |
+| backend/src/ | `config`, `constants`, `lib`, `middleware`, `repositories`, `services`, `controllers`, `routes`, `import`: presentación, contrato, lógica y persistencia separadas |
+| backend/scripts/ | `migrate.mjs` (con `--dry-run`), `seed.mjs` e `import-excel.mjs`, idempotentes |
+| database/migrations/ | `001_esquema_inicial.sql`: esquema objetivo (usuarios, clientes, pedidos, direcciones, historial_geolocalizacion, pagos, historial_estados, schema_migrations) |
+| backend/src/geocode/ | `nominatim.js` (adaptador de Nominatim/OSM) e `index.js` (fábrica según `config.geocode`); nunca confirma una dirección por sí solo |
+| frontend/src/api/ y src/auth/ | Cliente Axios con `Authorization: Bearer`, contexto de sesión, guardas por rol y almacenamiento del token |
+| frontend/src/pages/ | Login real, ABM de usuarios, carga manual y bandeja/detalle de revisión de direcciones |
+| frontend/src/components/ | Selector de cliente, formulario de dirección, mapa Leaflet (`MapPreview`) y etiqueta de validación |
+| frontend/src/App.jsx | Router de React Router; la barra lateral y el tablero reutilizan la maqueta |
+
+Flujo implementado: login contra `POST /api/auth/login` → token JWT → guardas de ruta por rol → operaciones con `Authorization: Bearer`. El backend valida permisos, formato y pertenencia; la guarda del cliente es solo navegación, no seguridad.
+
+Contrato vigente: `GET/POST/PUT /api/usuarios` (solo ADMINISTRADOR), `GET/POST /api/pedidos`, `GET /api/pedidos/:id`, `PUT /api/pedidos/:id/direccion`, `POST /api/pedidos/:id/geocodificar`, `POST /api/pedidos/:id/confirmar-direccion` y `GET/POST /api/clientes` (ADMINISTRADOR y OPERADOR), `GET /api/estados` y `POST /api/estados/:id` (transiciones y `puedeDespacharse`), `GET /api/health` y `POST /api/auth/login`, `GET /api/auth/me`. Los pedidos se crean como borrador `EN STOCK`/`PENDIENTE`; la geocodificación no confirma sola y sólo la acción humana deja la dirección `CONFIRMADA`. La ruta del chofer sigue siendo maqueta.
+
+Límites vigentes: `database/init.sql` no se tocó ni se reaplicó; la geocodificación/mapa (D06) quedó implementada sobre Nominatim/Leaflet y la importación real del Excel (T06) se validó contra MySQL. D09 (borradores/cancelación) y D11 (duplicados) siguen pendientes del cliente: sólo se avisan potenciales duplicados, no se fusionan. No hay pruebas end-to-end de navegador ni prueba del flujo contra contenedores en esta sesión.
