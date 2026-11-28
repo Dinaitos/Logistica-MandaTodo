@@ -2,7 +2,7 @@
 
 ## Estado
 
-Preparación terminada y handed off. No hay negocio implementado: frontend maqueta, backend con solo `GET /`, SQL inicial sin migrar. El handoff del 30/09/2026 verificó el descubrimiento de skills en OpenCode, cerró dos huecos reales y dejó evidencia fresca. Sigue pendiente arrancar el stack, probar sesiones nuevas de Codex y Claude Code, y ejecutar T01. Ver [verificación](verificacion.md).
+Núcleo del MVP1 implementado el 13/10/2026: entorno, esquema con migraciones y seed, autenticación JWT, ABM de usuarios, módulo de estados e importación histórica en backend; login real con guardas por rol y pantalla de Usuarios en frontend. La maqueta del tablero, la carga manual y la ruta del chofer siguen sin integrarse al backend. Falta la importación real del Excel (no está en `temp/`), la geocodificación/mapa (D06) y cerrar T04/T05/T07. Ver [verificación](verificacion.md).
 
 Responsables de las tareas siguientes: a asignar por el equipo. Cada tarea debe registrar rama/checkout, archivos reservados, decisión vinculada y evidencia de aceptación.
 
@@ -73,3 +73,79 @@ Cambios, todos en instrucciones y validación, ninguno en código de producto:
 Aceptación cumplida: `npm run check` pasó completo, `git diff --check` sin errores y sin problemas de codificación. Se comprobó la detección negativa de `backend/AGENTS.md` ausente restaurando el archivo después.
 
 Límites: no se arrancó Docker ni MySQL, no se leyeron los ZIP ni el Excel, no se implementó negocio y no se probaron Codex ni Claude Code porque no están en PATH. `frontend/AGENTS.md` sigue en inglés, en inglés de origen del equipo: se dejó así para no reescribir un archivo ajeno, y se anota como observación.
+
+## Sesión MVP1: núcleo (13/10/2026)
+
+Estado: completada en backend y en la autenticación de frontend; importación real y geocodificación pendientes. Responsable: agente OpenCode sobre rama `MVP-1`. Sin commit, push ni deploy. Verificación detallada en [verificación](verificacion.md).
+
+Alcance: entorno reproducible, esquema con migraciones y seed, autenticación JWT, autorización por rol y recurso, ABM de usuarios, módulo de estados y `puedeDespacharse`, importación histórica del Excel y frontend con login real, guardas de ruta y pantalla de Usuarios.
+
+Cambios y archivos:
+- Backend: `app.js` como fábrica sin base; `index.js` con pool; `src/config/env.js`, `src/lib/errors.js`, `src/lib/validar.js`, `src/lib/publico.js`, `src/constants/{roles,estados}.js`, middleware `auth`, `roles`, `errorHandler`, `notFound`; repositorios, servicios, controladores y rutas de auth, usuarios y estados; y `src/import/importador.js`.
+- Datos: `database/migrations/001_esquema_inicial.sql` y scripts `migrate.mjs`, `seed.mjs`, `import-excel.mjs`; `database/init.sql` sin tocar.
+- Frontend: `src/api/client.js`, `src/auth/{contexto.js,AuthContext.jsx,useAuth.js,ProtectedRoute.jsx,tokenStore.js}`, `src/pages/{LoginPage,UsersPage}.jsx`, `src/components/Icon.jsx`, `App.jsx` con router, `main.jsx` y `vite.config.js` con proxy.
+- Pruebas: `backend/test/{auth,estados,import}.test.js` y `frontend/src/**/*.test.js`; spec `frontend/specs/autenticacion-real.md`.
+
+Criterios cumplidos: 21/21 pruebas de backend y 6/6 de frontend; lint y build de Vite OK; smoke HTTP real con login admin, `GET`/`POST /api/usuarios`, rechazo 400 de payload inválido y 403 para chofer; migración y seed idempotentes; importación reejecutable sin duplicar contra MySQL 8.4.
+
+No cumplidos / límites: no se importó el Excel real (ausente en `temp/`); la maqueta de tablero, carga manual y ruta del chofer no llaman al backend; no hay geocodificación ni mapa (D06); no hay pruebas end-to-end de navegador.
+
+Decisión nueva: D18 (importación idempotente), D19 (token en `localStorage`), D20 (arnés de pruebas), además de actualizar D02, D04, D05 y D10.
+
+Siguiente paso: T04/T05 (flujo de carga y revisión con geocodificación) y depositar el Excel en `temp/` para validar la importación real (T06).
+
+## Sesión MVP1: carga y revisión de direcciones (T04/T05, 15/10/2026)
+
+Estado: T04 y T05 implementados en backend y frontend, con pruebas de negocio; pendiente la prueba end-to-end contra MySQL/Docker y el cierre de decisiones humanas. Responsable: agente OpenCode sobre rama `MVP-1`. Sin commit, push ni deploy. Verificación en [verificación](verificacion.md).
+
+Alcance:
+- Carga manual de pedidos con cliente real (`GET /api/clientes`) y dirección estructurada, guardada como borrador `EN STOCK`.
+- Bandeja de revisión de direcciones no confirmadas y detalle con mapa, historial e invalidación al cambiar la dirección.
+- Geocodificación vía Nominatim (OSM) y confirmación manual con mapa Leaflet (D06).
+
+Cambios y archivos:
+- Backend: `src/repositories/{ClienteRepository,PedidoRepository}.js`; `src/services/{ClienteService,PedidoService,GeocodeService}.js`; `src/geocode/{nominatim.js,index.js}`; `src/controllers/{pedidos.controller,clientes.controller}.js`; `src/routes/{pedidos.routes,clientes.routes}.js`; bloque `geocode` en `src/config/env.js`; `container.js` y `app.js` con las rutas `/api/pedidos` y `/api/clientes`.
+- Frontend: `src/api/pedidos.js`; `src/components/{ClienteSelector,DireccionForm,MapPreview,EstadoValidacionBadge}.jsx` y `src/components/direccion.js`; `src/pages/{PedidosCargaPage,PedidosRevisionPage,PedidoRevisionDetallePage}.jsx` y `src/pages/Pedidos.css`; rutas y navegación en `App.jsx`; spec `frontend/specs/pedidos-carga-revision.md`. Dependencias nuevas: `leaflet` y `react-leaflet` (D06).
+- Pruebas: `backend/test/{pedidos,geocode}.test.js`.
+
+Criterios cumplidos: 39/39 pruebas de backend (incluye borradores, invalidación D09/D10, geocodificación ok/aproximada/sin resultados/timeout/error y guardas de rol 401/403/200) y 6/6 de frontend; lint y build de Vite OK; `npm run check` completo (exit 0).
+
+No cumplidos / límites: no se probó el flujo contra MySQL/Docker ni con el proveedor real (Nominatim) porque requiere contenedores en ejecución y red; el mapa muestra teselas de OSM y depende de acceso a Internet en el navegador; no hay pruebas end-to-end de navegador. D09 (borradores/cancelación) y D11 (duplicados) siguen pendientes del cliente: sólo se avisan potenciales duplicados, no se fusionan.
+
+Siguiente paso: probar el flujo real contra los contenedores (login → carga → geocodificar → confirmar → revisión), y retomar T07 (asignación, entregas y pagos) cuando D04/D09 se definan.
+
+## Reparación del entorno Docker y smoke real (T04/T05, 15/10/2026)
+
+Estado: completada. Responsable: agente OpenCode sobre rama `MVP-1`. Sin commit, push ni deploy. Se reactivó el stack Docker y se corrió el flujo real de autenticación y consulta.
+
+Motivo: los contenedores habían quedado creados con `.env` incompleto (secretos vacíos) y con volúmenes anónimos de `node_modules` desactualizados, por lo que el backend caía con `MODULE_NOT_FOUND` y el login no funcionaba.
+
+Cambios y archivos:
+- `.env` (raíz) y `backend/.env`: completados con valores de desarrollo (contraseña de root, usuario y contraseña de aplicación y `JWT_SECRET`, definidos localmente). Están gitignoreados y no se versionan; los `.env.example` siguen con los campos vacíos para no publicar credenciales.
+- MySQL: el volumen nombrado `mysql_data` ya estaba inicializado (root con contraseña y base `mandatodo` vacía, sin tablas ni usuario de aplicación); no se borró ningún volumen. Se creó el usuario de aplicación con `CREATE USER IF NOT EXISTS` + `GRANT` sobre `mandatodo.*`, porque el entrypoint no lo crea sobre un volumen ya inicializado.
+- Stack recreado con `docker compose up -d --build -V` para reconstruir imágenes (traen `bcryptjs`, `jsonwebtoken`, `zod` en backend y `leaflet`, `react-leaflet` en frontend) y renovar los volúmenes anónimos de `node_modules`.
+
+Observación (no abordada, queda para otra tarea): `backend/scripts/migrate.mjs` resuelve `../../database/migrations/` respecto de su propia ubicación, así que `npm run migrate` **dentro del contenedor** falla con `ENOENT` porque ese directorio no entra ni en la imagen ni en el bind mount `./backend:/app`. Migración y seed se corrieron desde el host (`npm.cmd --prefix backend run migrate|seed`) contra `127.0.0.1:3306`. Falta decidir si el contenedor debe poder migrar por sí mismo.
+
+Evidencia: `docker compose ps` con los 3 servicios `Up` (MySQL `healthy`); log del backend `Conexión a MySQL exitosa`; `POST /api/auth/login` admin devuelve token (rol `ADMINISTRADOR`); `GET /api/pedidos` y `GET /api/clientes` responden `200` (0 filas, base recién migrada); `http://localhost:5173/` responde `200`.
+
+Credenciales de desarrollo del seed (ya presentes en `.env.example`): `admin@mandatodo.com`, `operador@mandatodo.com`, `chofer@mandatodo.com`, todas con contraseña `Admin123!`.
+
+Siguiente paso: probar el flujo real en el navegador (login → carga → geocodificar → confirmar → revisión) y retomar T07 cuando D04/D09 se definan.
+
+## Alta de cliente en la carga manual (continuación de T04, 15/10/2026)
+
+Estado: completada. Responsable: agente OpenCode sobre rama `MVP-1`. Sin commit, push ni deploy.
+
+Motivo: la base de desarrollo tenía 0 clientes y la pantalla de carga sólo permitía elegir uno existente, así que no se podía cargar ningún pedido ni geocodificar. Se agregó el alta de cliente dentro del mismo formulario. Es parte del flujo de MVP1 ("datos del cliente dentro del pedido"); no es la pantalla independiente de ABM de clientes, que sigue pendiente en D07.
+
+Cambios y archivos:
+- Backend: `repositories/ClienteRepository.js` (`crear`, `buscarPorDni`, `buscarCoincidencias`); `services/ClienteService.js` (`crear` normaliza el DNI a solo dígitos, rechaza DNI duplicado como conflicto y devuelve coincidencias por teléfono/email sin fusionar); `controllers/clientes.controller.js` (`crear` con zod); `routes/clientes.routes.js` (`POST /api/clientes`, ADMINISTRADOR y OPERADOR). Sin cambios de esquema. Pruebas nuevas en `test/clientes.test.js`.
+- Frontend: `api/pedidos.js` (`crearCliente`); nuevos `components/{ClienteCampos.jsx,cliente.js}`; `pages/PedidosCargaPage.jsx` (elige frecuente o carga un cliente nuevo; crea el cliente y después el pedido) y `pages/Pedidos.css`; spec `frontend/specs/pedidos-carga-revision.md`.
+- Docs: `arquitectura.md` (contrato `POST /api/clientes`), `pantallas.md` (campos del cliente en la carga), este apartado y `verificacion.md`.
+
+Evidencia (detalle en `docs/verificacion.md`): backend `npm.cmd --prefix backend test` 44/44; lint y build de frontend OK; smoke real contra los contenedores con alta de cliente (`201`, DNI `30.111.222` → `30111222`), DNI duplicado (`409`), sin token (`401`) y pedido creado con ese cliente (`EN STOCK`/`PENDIENTE`).
+
+Límites: no se probó en navegador ni la geocodificación real con Nominatim; el aviso de duplicados es informativo y no fusiona (D09/D11 pendientes). El smoke dejó datos de prueba en la base de desarrollo (cliente id 1 y pedido id 1), no borrados.
+
+Siguiente paso: probar en navegador la carga de un pedido con cliente nuevo y geocodificar; retomar T07 cuando D04/D09 se definan.

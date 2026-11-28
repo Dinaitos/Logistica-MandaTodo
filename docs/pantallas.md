@@ -68,3 +68,24 @@ frontend/src/App.jsx reproduce login, tablero vacío y formulario. La navegació
 ## Revisión pendiente por decisión del usuario
 
 El 30/09/2026 el usuario indicó dejar pendiente el acceso de prueba. No había sesión autenticada disponible y no se recibió repositorio del prototipo. No se probaron pedidos poblados, validación exitosa, entregas ni pagos. Para retomar T08, habilitar sesión de prueba desde el navegador o aportar código autorizado, capturas/exportación sin credenciales ni datos personales. Nunca pedir contraseñas por chat. Registrar por flujo: rol, datos sintéticos, estado inicial, acción, resultado visible y evidencia; distinguir interfaz de persistencia y autorización real.
+
+## Cambios locales implementados · 13/10/2026
+
+Estos cambios son locales y no modifican el relevamiento remoto; la referencia visual sigue siendo la demo.
+
+- **Login real** (`frontend/src/pages/LoginPage.jsx`): conserva el diseño del login de la maqueta, pero ahora valida contra el backend y guarda un token. Se retiraron las cuentas y la contraseña de demostración del código; para probar se usan las cuentas de `seed` definidas por variables de entorno, nunca credenciales versionadas.
+- **Usuarios** (`frontend/src/pages/UsersPage.jsx`): pantalla nueva solo para ADMINISTRADOR, con tabla (nombre, email, rol, estado) y formulario de alta/edición. No aparece en el relevamiento remoto de operador y es una pieza propia del MVP.
+- El tablero, la carga manual, la barra lateral y la ruta del chofer conservan su aspecto de maqueta; sólo cambiaron de navegación por `useState` a React Router y el cierre de sesión.
+
+No se probó visualmente en navegador ni en viewport móvil en esta sesión; ver límites en [verificación](verificacion.md).
+
+## Carga y revisión implementadas · 15/10/2026 (T04/T05)
+
+Reemplazan a la maqueta de carga manual; conservan el lenguaje visual observado (dos columnas, tarjetas, acentos azules). Detalle funcional en `frontend/specs/pedidos-carga-revision.md`.
+
+- **Carga Manual de Pedido** (`frontend/src/pages/PedidosCargaPage.jsx`, ruta `/form`): columna 1 con selector de cliente frecuente contra `GET /api/clientes` (búsqueda por nombre, email, teléfono o código), campos del cliente (nombre obligatorio, DNI, teléfono, email) y formulario de dirección estructurada (calle obligatoria; altura opcional: sin altura queda borrador). Si no se elige un frecuente, Guardar da de alta el cliente con `POST /api/clientes` y recién después crea el pedido; el DNI duplicado se rechaza y un teléfono/email parecido sólo se avisa. Columna 2 con mapa Leaflet, estado de validación y botones Geocodificar y Confirmar. Guardar crea un borrador `EN STOCK`; avisa si hay posibles duplicados sin fusionarlos.
+- **Revisión de direcciones** (`frontend/src/pages/PedidosRevisionPage.jsx`, ruta `/pedidos/revision`): tabla de pedidos con filtro por estado de validación (por defecto, sin confirmar) y enlace Revisar. Acceso nuevo en la barra lateral ("Revisión de Direcciones").
+- **Detalle de revisión** (`frontend/src/pages/PedidoRevisionDetallePage.jsx`, ruta `/pedidos/:id/revision`): datos del cliente, dirección editable, mapa, historial de intentos de geocodificación y acciones Geocodificar y Confirmar. Guardar un cambio de calle/altura invalida la confirmación previa y exige revisar de nuevo.
+- El mapa es de sólo lectura sobre teselas de OpenStreetMap; la corrección se hace en el formulario y la confirmación siempre la realiza una persona.
+
+Estas pantallas no se probaron visualmente en navegador contra el backend en esta sesión; se acreditan con lint, build y pruebas unitarias de los servicios (ver [verificación](verificacion.md)).
